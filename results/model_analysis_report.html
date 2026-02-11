@@ -1,0 +1,251 @@
+
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <title>Analyse des Modèles de Prédiction de Consommation Énergétique</title>
+        <style>
+            :root {
+                --primary-color: #2c3e50;
+                --secondary-color: #3498db;
+                --accent-color: #e74c3c;
+                --text-color: #2c3e50;
+                --light-bg: #ecf0f1;
+            }
+            
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                margin: 0;
+                padding: 0;
+                background-color: var(--light-bg);
+                color: var(--text-color);
+                line-height: 1.6;
+            }
+            
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 40px 20px;
+            }
+            
+            header {
+                background-color: var(--primary-color);
+                color: white;
+                padding: 60px 0;
+                text-align: center;
+                margin-bottom: 40px;
+            }
+            
+            h1 {
+                font-size: 2.5em;
+                margin: 0;
+                color: white;
+            }
+            
+            h2 {
+                color: var(--primary-color);
+                border-bottom: 2px solid var(--secondary-color);
+                padding-bottom: 10px;
+                margin-top: 40px;
+            }
+            
+            .card {
+                background: white;
+                border-radius: 10px;
+                padding: 20px;
+                margin: 20px 0;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+                background: white;
+                border-radius: 10px;
+                overflow: hidden;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            
+            th, td {
+                padding: 15px;
+                text-align: left;
+                border-bottom: 1px solid #ddd;
+            }
+            
+            th {
+                background-color: var(--primary-color);
+                color: white;
+            }
+            
+            tr:hover {
+                background-color: #f5f5f5;
+            }
+            
+            .visualization {
+                margin: 30px 0;
+                text-align: center;
+            }
+            
+            .visualization img {
+                max-width: 100%;
+                border-radius: 10px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            
+            .explanation {
+                background: white;
+                padding: 30px;
+                border-radius: 10px;
+                margin: 30px 0;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            
+            .metrics {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+                margin: 20px 0;
+            }
+            
+            .metric-card {
+                background: white;
+                padding: 20px;
+                border-radius: 10px;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            
+            .metric-value {
+                font-size: 2em;
+                color: var(--secondary-color);
+                font-weight: bold;
+            }
+            
+            .conclusion {
+                background-color: var(--primary-color);
+                color: white;
+                padding: 30px;
+                border-radius: 10px;
+                margin-top: 40px;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div class="container">
+                <h1>Analyse des Modèles de Prédiction de Consommation Énergétique</h1>
+                <p>Projet de Machine Learning pour la Prédiction de la Demande Énergétique</p>
+            </div>
+        </header>
+        
+        <div class="container">
+            <div class="card">
+                <h2>Comparaison des Performances des Modèles</h2>
+                <table border="1" class="dataframe table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Model</th>
+      <th>RMSE</th>
+      <th>MAE</th>
+      <th>R2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Linear Regression</td>
+      <td>59275.909505</td>
+      <td>46651.907779</td>
+      <td>0.070348</td>
+    </tr>
+    <tr>
+      <td>Ridge Regression</td>
+      <td>59275.549885</td>
+      <td>46653.446203</td>
+      <td>0.070359</td>
+    </tr>
+    <tr>
+      <td>Random Forest</td>
+      <td>37465.902704</td>
+      <td>26165.872181</td>
+      <td>0.628605</td>
+    </tr>
+    <tr>
+      <td>Gradient Boosting</td>
+      <td>37712.320320</td>
+      <td>27781.907155</td>
+      <td>0.623703</td>
+    </tr>
+  </tbody>
+</table>
+            </div>
+            
+            <div class="metrics">
+                <div class="metric-card">
+                    <div class="metric-value">0.629</div>
+                    <p>Score R² du Meilleur Modèle</p>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">37466</div>
+                    <p>RMSE Minimum (MW)</p>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">26166</div>
+                    <p>MAE Minimum (MW)</p>
+                </div>
+            </div>
+            
+            <div class="visualization">
+                <h2>Visualisation des Performances</h2>
+                <img src="visualizations/model_comparison.png" alt="Comparaison des Modèles">
+            </div>
+            
+            <div class="visualization">
+                <h2>Importance des Caractéristiques</h2>
+                <img src="visualizations/feature_importance.png" alt="Importance des Caractéristiques">
+            </div>
+            
+            <div class="explanation">
+                <h2>Explication de la Sélection du Modèle</h2>
+                <p>Le meilleur modèle a été sélectionné sur la base de plusieurs métriques :</p>
+                <ul>
+                    <li><strong>RMSE (Erreur Quadratique Moyenne Racine) :</strong> Mesure l'ampleur moyenne des erreurs entre les valeurs prédites et réelles.</li>
+                    <li><strong>MAE (Erreur Absolue Moyenne) :</strong> Mesure la différence absolue moyenne entre les valeurs prédites et réelles.</li>
+                    <li><strong>Score R² :</strong> Indique dans quelle mesure le modèle explique la variance des données.</li>
+                </ul>
+                
+                <h3>Pourquoi ce Modèle est le Meilleur</h3>
+                <p>Le modèle sélectionné démontre une performance supérieure car :</p>
+                <ul>
+                    <li>Il capture efficacement les relations non-linéaires dans les données</li>
+                    <li>Il gère bien les interactions entre les caractéristiques</li>
+                    <li>Il est robuste aux valeurs aberrantes</li>
+                    <li>Il offre une bonne généralisation aux données non vues</li>
+                </ul>
+                
+                <h3>Fonctionnement du Modèle</h3>
+                <p>Le modèle fonctionne en :</p>
+                <ol>
+                    <li>Prenant en entrée les caractéristiques (température, humidité, vitesse du vent, etc.)</li>
+                    <li>Traitant ces caractéristiques à travers plusieurs arbres de décision</li>
+                    <li>Combinant les prédictions de tous les arbres pour faire une prédiction finale</li>
+                    <li>Produisant la valeur prédite de consommation énergétique</li>
+                </ol>
+                
+                <h3>Caractéristiques Clés et Leur Importance</h3>
+                <p>Le modèle prend en compte plusieurs facteurs importants :</p>
+                <ul>
+                    <li>Conditions météorologiques (température, humidité, vitesse du vent)</li>
+                    <li>Caractéristiques temporelles (mois, jour de la semaine)</li>
+                    <li>Événements spéciaux et weekends</li>
+                </ul>
+            </div>
+            
+            <div class="conclusion">
+                <h2>Conclusion</h2>
+                <p>Le modèle Random Forest s'est avéré être le plus performant pour prédire la consommation énergétique, avec un score R² de 0.629. Cette performance démontre sa capacité à capturer les relations complexes entre les différentes variables et à fournir des prédictions précises pour la planification énergétique.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prédiction de Consommation Énergétique</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #1a2980;
+            --primary-gradient: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+            --secondary-color: #26d0ce;
+            --accent-color: #FF4E50;
+            --text-color: #2c3e50;
+            --light-bg: #f8f9fa;
+            --card-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            --input-border: #e0e0e0;
+            --success-color: #2ecc71;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 60px 0;
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 80%);
+            animation: pulse 15s infinite linear;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translate(5%, 5%) scale(1.05);
+                opacity: 0.5;
+            }
+            100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.3;
+            }
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 2.8em;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        
+        header p {
+            font-size: 1.2em;
+            margin-top: 15px;
+            opacity: 0.9;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .model-info {
+            font-size: 0.9em;
+            margin-top: 10px;
+            padding: 5px 15px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            display: inline-block;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+        
+        .card-title {
+            font-size: 1.4em;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card-title i {
+            margin-right: 10px;
+            color: var(--secondary-color);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 0.95em;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background-color: #f9f9f9;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(38, 208, 206, 0.2);
+            background-color: white;
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        
+        .input-group i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+        }
+        
+        button {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: block;
+            width: 100%;
+            margin-top: 30px;
+            box-shadow: 0 4px 10px rgba(26, 41, 128, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(26, 41, 128, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 5px rgba(26, 41, 128, 0.4);
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 0;
+            background-color: transparent;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+        
+        .result.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .result-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .result-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--primary-gradient);
+        }
+        
+        .prediction-title {
+            font-size: 1.5em;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+        
+        .prediction-value {
+            font-size: 3em;
+            color: var(--secondary-color);
+            font-weight: bold;
+            margin: 30px 0;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .prediction-text {
+            font-size: 1.1em;
+            color: var(--text-color);
+        }
+        
+        .error {
+            color: var(--accent-color);
+            background-color: rgba(255, 78, 80, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+        
+        .error i {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            margin-left: 5px;
+            color: #aaa;
+            cursor: help;
+        }
+        
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.9em;
+            font-weight: normal;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid var(--secondary-color);
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 15px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+            color: #888;
+            font-size: 0.9em;
+        }
+        
+        .features {
+            display: flex;
+            justify-content: space-around;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+        
+        .feature {
+            text-align: center;
+            padding: 20px;
+            width: 30%;
+            min-width: 200px;
+        }
+        
+        .feature i {
+            font-size: 2.5em;
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+        }
+        
+        .feature h3 {
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Prédiction de Consommation Énergétique</h1>
+            <p>Utilisez notre modèle d'intelligence artificielle pour prédire la consommation d'énergie en fonction des conditions météorologiques et d'autres facteurs.</p>
+            {% if model_timestamp %}
+            <p class="model-info">Modèle entraîné le: {{ model_timestamp[:8] }} à {{ model_timestamp[9:11] }}h{{ model_timestamp[11:13] }}</p>
+            {% endif %}
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="features">
+            <div class="feature">
+                <i class="fas fa-bolt"></i>
+                <h3>Prédiction Précise</h3>
+                <p>Algorithmes avancés basés sur le machine learning</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-chart-line"></i>
+                <h3>Analyse en Temps Réel</h3>
+                <p>Obtenez des résultats instantanés</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-cloud-sun"></i>
+                <h3>Facteurs Multiples</h3>
+                <p>Prise en compte des conditions météorologiques et temporelles</p>
+            </div>
+        </div>
+        
+        <div class="dashboard">
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-sliders-h"></i> Paramètres de Prédiction</h2>
+                
+                <div class="form-group" style="margin-bottom: 30px; border: 1px solid var(--secondary-color); padding: 15px; border-radius: 8px; background-color: rgba(38, 208, 206, 0.05);">
+                    <label for="prediction_date" style="font-weight: 600; color: var(--primary-color);">
+                        <i class="fas fa-calendar-alt" style="margin-right: 8px; color: var(--secondary-color);"></i>
+                        Date de prédiction
+                        <span class="tooltip"><i class="fas fa-info-circle"></i>
+                            <span class="tooltip-text">Sélectionnez une date pour prédire la consommation énergétique</span>
+                        </span>
+                    </label>
+                    <div class="input-group">
+                        <input type="date" id="prediction_date" name="prediction_date" style="font-size: 1.1em; padding: 15px;" required>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        <i class="fas fa-info-circle"></i> Les paramètres météorologiques devront être saisis manuellement pour les prédictions futures.
+                    </p>
+                </div>
+                
+                <form id="predictionForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="temperature">
+                                Température (°C)
+                                <span class="tooltip"><i class="fas fa-info-circle"></i>
+                                    <span class="tooltip-text">Température moyenne journalière en degrés Celsius</span>
+                                </span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" id="temperature" name="temperature" step="0.1" required>
+                                <i class="fas fa-temperature-high"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="humidite">
+                                Humidité (%)
+                                <span class="tooltip"><i class="fas fa-info-circle"></i>
+                                    <span class="tooltip-text">Taux d'humidité relative dans l'air</span>
+                                </span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" id="humidite" name="humidite" step="0.1" min="0" max="100" required>
+                                <i class="fas fa-tint"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="vitesse_vent">
+                                Vitesse du Vent (km/h)
+                                <span class="tooltip"><i class="fas fa-info-circle"></i>
+                                    <span class="tooltip-text">Vitesse moyenne du vent en kilomètres par heure</span>
+                                </span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" id="vitesse_vent" name="vitesse_vent" step="0.1" min="0" required>
+                                <i class="fas fa-wind"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="precipitation">
+                                Précipitation (mm)
+                                <span class="tooltip"><i class="fas fa-info-circle"></i>
+                                    <span class="tooltip-text">Quantité de précipitations en millimètres</span>
+                                </span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" id="precipitation" name="precipitation" step="0.1" min="0" required>
+                                <i class="fas fa-cloud-rain"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="mois">Mois</label>
+                            <div class="input-group">
+                                <select id="mois" name="mois" required>
+                                    <option value="1">Janvier</option>
+                                    <option value="2">Février</option>
+                                    <option value="3">Mars</option>
+                                    <option value="4">Avril</option>
+                                    <option value="5">Mai</option>
+                                    <option value="6">Juin</option>
+                                    <option value="7">Juillet</option>
+                                    <option value="8">Août</option>
+                                    <option value="9">Septembre</option>
+                                    <option value="10">Octobre</option>
+                                    <option value="11">Novembre</option>
+                                    <option value="12">Décembre</option>
+                                </select>
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="jour_semaine">Jour de la Semaine</label>
+                            <div class="input-group">
+                                <select id="jour_semaine" name="jour_semaine" required>
+                                    <option value="0">Lundi</option>
+                                    <option value="1">Mardi</option>
+                                    <option value="2">Mercredi</option>
+                                    <option value="3">Jeudi</option>
+                                    <option value="4">Vendredi</option>
+                                    <option value="5">Samedi</option>
+                                    <option value="6">Dimanche</option>
+                                </select>
+                                <i class="fas fa-calendar-day"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="weekend">Weekend</label>
+                            <div class="input-group">
+                                <select id="weekend" name="weekend" required>
+                                    <option value="0">Non</option>
+                                    <option value="1">Oui</option>
+                                </select>
+                                <i class="fas fa-umbrella-beach"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="evenement">
+                                Événement Spécial
+                                <span class="tooltip"><i class="fas fa-info-circle"></i>
+                                    <span class="tooltip-text">Jour férié, événement sportif majeur, etc.</span>
+                                </span>
+                            </label>
+                            <div class="input-group">
+                                <select id="evenement" name="evenement" required>
+                                    <option value="0">Non</option>
+                                    <option value="1">Oui</option>
+                                </select>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit"><i class="fas fa-calculator"></i> Obtenir la Prédiction</button>
+                </form>
+            </div>
+            
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-chart-pie"></i> Résultats</h2>
+                
+                <div id="loading" class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Calcul en cours...</p>
+                </div>
+                
+                <div id="result" class="result">
+                    <div class="result-card">
+                        <h3 class="prediction-title">Résultat de la Prédiction</h3>
+                        <div class="prediction-value" id="predictionValue"></div>
+                        <p class="prediction-text">La consommation énergétique prédite est de <span id="predictionText"></span> Wh.</p>
+                        
+                        <div class="additional-info" style="margin-top: 20px; text-align: left;">
+                            <p><i class="fas fa-info-circle" style="color: var(--secondary-color);"></i> Cette prédiction est basée sur un modèle d'apprentissage automatique entraîné sur des données historiques.</p>
+                        </div>
+                        
+                        <div style="margin-top: 20px; text-align: center;">
+                            <a href="/comparison" class="nav-button" style="display: inline-flex; text-decoration: none; padding: 10px 20px; background: var(--primary-gradient); color: white; border-radius: 8px; font-weight: 600; box-shadow: 0 4px 10px rgba(26, 41, 128, 0.3);">
+                                <i class="fas fa-chart-bar" style="margin-right: 8px;"></i> Voir la comparaison des modèles
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="error" class="error" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="errorText"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Système de Prédiction de Consommation Énergétique | Développé avec <i class="fas fa-heart" style="color: var(--accent-color);"></i> pour l'optimisation énergétique</p>
+        </div>
+    </footer>
+    
+    <script>
+        document.getElementById('predictionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Afficher le spinner de chargement
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            
+            const formData = {
+                temperature: parseFloat(document.getElementById('temperature').value),
+                humidite: parseFloat(document.getElementById('humidite').value),
+                vitesse_vent: parseFloat(document.getElementById('vitesse_vent').value),
+                precipitation: parseFloat(document.getElementById('precipitation').value),
+                mois: parseInt(document.getElementById('mois').value),
+                jour_semaine: parseInt(document.getElementById('jour_semaine').value),
+                weekend: parseInt(document.getElementById('weekend').value),
+                evenement: parseInt(document.getElementById('evenement').value)
+            };
+            
+            try {
+                // Simuler un délai pour montrer le spinner (à supprimer en production)
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                // Cacher le spinner
+                document.getElementById('loading').style.display = 'none';
+                
+                if (response.ok) {
+                    const resultElement = document.getElementById('result');
+                    resultElement.style.display = 'block';
+                    document.getElementById('error').style.display = 'none';
+                    
+                    document.getElementById('predictionValue').textContent = 
+                        Math.round(data.prediction).toLocaleString() + ' Wh';
+                    document.getElementById('predictionText').textContent = 
+                        Math.round(data.prediction).toLocaleString();
+                    
+                    // Ajouter la classe visible avec un délai pour l'animation
+                    setTimeout(() => {
+                        resultElement.classList.add('visible');
+                    }, 50);
+                } else {
+                    throw new Error(data.error || 'Une erreur est survenue');
+                }
+            } catch (error) {
+                // Cacher le spinner
+                document.getElementById('loading').style.display = 'none';
+                
+                document.getElementById('result').style.display = 'none';
+                document.getElementById('error').style.display = 'flex';
+                document.getElementById('errorText').textContent = error.message;
+            }
+        });
+        
+        // Fonction pour mettre à jour les champs en fonction de la date
+        function updateFieldsFromDate(dateStr) {
+            const date = new Date(dateStr);
+            
+            // Mettre à jour le mois (getMonth renvoie 0-11)
+            const month = date.getMonth() + 1;
+            document.getElementById('mois').value = month;
+            
+            // Mettre à jour le jour de la semaine (getDay renvoie 0-6, où 0 = dimanche)
+            let dayOfWeek = date.getDay();
+            // Convertir au format 0-6 où 0 = lundi
+            dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            document.getElementById('jour_semaine').value = dayOfWeek;
+            
+            // Mettre à jour le weekend
+            const isWeekend = (date.getDay() === 0 || date.getDay() === 6) ? 1 : 0;
+            document.getElementById('weekend').value = isWeekend;
+        }
+        
+        // Initialiser la date à aujourd'hui et mettre à jour les champs
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0]; // Format YYYY-MM-DD
+            
+            const datePicker = document.getElementById('prediction_date');
+            datePicker.value = dateStr;
+            datePicker.min = dateStr; // Empêcher la sélection de dates passées
+            
+            updateFieldsFromDate(dateStr);
+            
+            // Ajouter un écouteur pour mettre à jour les champs lorsque la date change
+            datePicker.addEventListener('change', function() {
+                updateFieldsFromDate(this.value);
+            });
+        });
+    </script>
+</body>
+</html> 
