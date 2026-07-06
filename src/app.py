@@ -101,36 +101,74 @@ def comparison():
                           feature_importance=feature_importance,
                           model_timestamp=model_timestamp)
 
+# ── Historique + colonnes de features (pour les variables autorégressives) ──
+def _load_series_and_features():
+    root = os.path.dirname(os.path.dirname(__file__))
+    series_path = os.path.join(root, 'data', 'processed', 'daily_series.csv')
+    feat_path = os.path.join(root, 'models', 'feature_columns.json')
+    series, feat_cols = None, None
+    try:
+        import pandas as pd
+        series = pd.read_csv(series_path, parse_dates=['date'], index_col='date')['Consommation(MW)']
+    except Exception as e:
+        print(f"Série historique indisponible : {e}")
+    try:
+        with open(feat_path, encoding='utf-8') as f:
+            feat_cols = json.load(f)
+    except Exception as e:
+        print(f"feature_columns.json indisponible : {e}")
+    return series, feat_cols
+
+history_series, feature_columns = _load_series_and_features()
+
+
 @app.route('/predict', methods=['POST'])
 def predict():
     if model is None:
         return jsonify({'error': 'Le modèle n\'est pas disponible'}), 500
-    
+
     try:
-        # Récupérer les données du formulaire
         data = request.get_json()
-        
-        # Créer le vecteur de features dans le bon ordre
-        features = np.array([[
-            data['temperature'],
-            data['humidite'],
-            data['vitesse_vent'],
-            data['precipitation'],
-            data['mois'],
-            data['jour_semaine'],
-            data['weekend'],
-            data['evenement']
-        ]])
-        
-        # Faire la prédiction
+
+        # Variables autorégressives : dérivées de l'historique récent (dernier état connu).
+        if history_series is not None and len(history_series) >= 30:
+            lag1 = float(history_series.iloc[-1])
+            lag7 = float(history_series.iloc[-7])
+            moyenne_7j = float(history_series.iloc[-7:].mean())
+            moyenne_30j = float(history_series.iloc[-30:].mean())
+        else:
+            lag1 = lag7 = moyenne_7j = moyenne_30j = float(data.get('lag1', 0) or 0)
+
+        mois = int(data['mois'])
+        # jour de l'année approximé au milieu du mois choisi
+        import datetime as _dt
+        jour_annee = _dt.date(2020, mois, 15).timetuple().tm_yday
+
+        values = {
+            'temperature': data['temperature'],
+            'humidite': data['humidite'],
+            'vitesse_vent': data['vitesse_vent'],
+            'precipitation': data['precipitation'],
+            'evenement': data['evenement'],
+            'mois': mois,
+            'jour_semaine': data['jour_semaine'],
+            'weekend': data['weekend'],
+            'jour_annee': jour_annee,
+            'lag1': lag1,
+            'lag7': lag7,
+            'moyenne_7j': moyenne_7j,
+            'moyenne_30j': moyenne_30j,
+        }
+
+        cols = feature_columns or list(values.keys())
+        features = np.array([[float(values[c]) for c in cols]])
         prediction = model.predict(features)[0]
-        
-        return jsonify({
-            'prediction': float(prediction)
-        })
-        
+
+        return jsonify({'prediction': float(prediction)})
+
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)

@@ -1,0 +1,15 @@
+[
+  "temperature",
+  "humidite",
+  "vitesse_vent",
+  "precipitation",
+  "evenement",
+  "mois",
+  "jour_semaine",
+  "weekend",
+  "jour_annee",
+  "lag1",
+  "lag7",
+  "moyenne_7j",
+  "moyenne_30j"
+]

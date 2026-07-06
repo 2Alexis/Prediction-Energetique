@@ -1,85 +1,86 @@
-# Prédiction de la Demande Énergétique Quotidienne
+# ⚡ Prédiction de la demande énergétique quotidienne
 
-Ce projet vise à développer un modèle de machine learning capable de prédire la demande énergétique quotidienne d'une ville en fonction de divers paramètres tels que la météo, la consommation passée et les événements spéciaux.
+Modèle de Machine Learning prédisant la **consommation électrique quotidienne** d'une ville à partir de la météo, du calendrier et de l'historique récent de consommation. Le projet couvre toute la chaîne : nettoyage des données, feature engineering, comparaison de modèles, évaluation rigoureuse et mise à disposition via une application web Flask.
 
-## Structure du Projet
+## 🎯 Résultats
+
+Évaluation sur un **découpage temporel** (80 % passé pour l'entraînement, 20 % futur pour le test) — c'est-à-dire dans des conditions réalistes de prévision, sans fuite de données.
+
+| Modèle | R² (test) | RMSE | MAE |
+|---|---|---|---|
+| **Random Forest** ⭐ | **0.86** | 22 823 MW | 18 102 MW |
+| XGBoost | 0.85 | 23 391 MW | 18 372 MW |
+| LightGBM | 0.85 | 23 719 MW | 18 544 MW |
+| Gradient Boosting | 0.84 | 24 208 MW | 19 184 MW |
+
+> **Point clé — l'apport des variables autorégressives.** La consommation est fortement autocorrélée (corrélation de 0,90 avec la veille). En ajoutant des variables de *lag* (consommation de J-1, J-7) et des moyennes glissantes, le R² de test passe de **~0,53** (météo + calendrier seuls) à **0,86**. La variable la plus déterminante est de loin la consommation de la veille (**84 %** de l'importance).
+
+![Comparaison des modèles](results/model_comparison.png)
+![Réel vs prédit](results/predictions_vs_actual.png)
+
+## 🧠 Approche
+
+1. **Reconstruction d'une série journalière propre** à partir des données brutes (agrégation par date, calendrier régulier, interpolation des jours manquants).
+2. **Feature engineering** :
+   - Météo : température, humidité, vitesse du vent, précipitations
+   - Calendrier : mois, jour de la semaine, week-end, jour de l'année, événement spécial
+   - **Autorégressif : lag J-1, lag J-7, moyennes glissantes 7 j et 30 j** (décalées d'au moins un jour → aucune fuite)
+3. **Découpage temporel** (et non aléatoire) pour une évaluation honnête d'un problème de séries temporelles.
+4. **Comparaison de 4 modèles** régularisés (Random Forest, Gradient Boosting, XGBoost, LightGBM), sélection du meilleur sur le R² de test.
+
+## 📁 Structure
 
 ```
-project_ia/
-│
-├── data/               # Dossier contenant les données
-│   ├── raw/           # Données brutes
-│   └── processed/     # Données traitées
-│
-├── models/            # Modèles entraînés et métriques
-│
-├── notebooks/         # Notebooks Jupyter pour l'analyse exploratoire
-│
-├── results/           # Visualisations et résultats
-│
-└── src/              # Code source
-    ├── data_preparation.py    # Préparation des données
-    ├── model_training.py      # Entraînement des modèles
-    └── visualization.py       # Visualisation des données et résultats
+Prediction-Energetique/
+├── data/
+│   ├── raw/                 # Données brutes (cleaned_file.csv)
+│   └── processed/           # Série journalière reconstruite (daily_series.csv)
+├── models/                  # Meilleur modèle + métriques + importance des variables
+├── results/                 # Visualisations (comparaison, prédictions, importances, EDA)
+├── notebooks/               # Analyse exploratoire (energy_analysis.ipynb)
+├── streamlit_app.py         # ⭐ Application web Streamlit (démo déployée)
+├── src/
+│   ├── train_model.py       # ⭐ Pipeline complet : features → entraînement → évaluation → sauvegarde
+│   ├── app.py               # Version Flask équivalente
+│   ├── data_module.py       # Préparation des données
+│   ├── model_module.py      # Fonctions d'entraînement
+│   ├── visualization_module.py
+│   └── templates/           # Pages HTML de l'app
+└── requirements.txt
 ```
 
-## Installation
+## 🚀 Installation & utilisation
 
-1. Cloner le repository :
 ```bash
-git clone [URL_DU_REPO]
-cd project_ia
-```
-
-2. Installer les dépendances :
-```bash
+git clone https://github.com/2Alexis/Prediction-Energetique.git
+cd Prediction-Energetique
 pip install -r requirements.txt
 ```
 
-## Utilisation
-
-1. Préparation des données :
+**Entraîner le modèle** (régénère modèle, métriques et visualisations) :
 ```bash
-python src/data_preprocessing.py
+python src/train_model.py
 ```
 
-2. Entraînement du modèle :
+**Lancer l'application web (Streamlit)** :
 ```bash
-python src/model_training.py
+streamlit run streamlit_app.py
 ```
+L'application prédit la consommation à partir des paramètres météo/calendrier saisis ; les variables autorégressives sont automatiquement dérivées de l'historique le plus récent. Une version Flask équivalente est également disponible (`python src/app.py`).
 
-3. Visualisation des résultats :
-```bash
-python src/visualization.py
-```
+## 🛠️ Stack technique
 
-## Fonctionnalités
+Python · pandas · scikit-learn · XGBoost · LightGBM · matplotlib · Streamlit · Flask · joblib
 
-- Nettoyage et préparation des données
-- Feature engineering pour les variables temporelles
-- Entraînement de différents modèles (Random Forest, Régression Linéaire)
-- Évaluation des modèles avec diverses métriques
-- Visualisations des résultats et analyses
+## 📊 Métriques d'évaluation
 
-## Métriques d'Évaluation
+MSE · RMSE · MAE · R²
 
-- MSE (Mean Squared Error)
-- RMSE (Root Mean Squared Error)
-- MAE (Mean Absolute Error)
-- R² Score
+## 👤 Auteur
 
-## Prochaines Étapes
+**Alexis Clerc** — Étudiant en Bachelor Informatique spécialisé IA & Data
+[GitHub](https://github.com/2Alexis) · [Portfolio](https://alexis-clerc.fr)
 
-- [ ] Intégration de données météorologiques
-- [ ] Ajout de nouveaux modèles (XGBoost, LightGBM)
-- [ ] Optimisation des hyperparamètres
-- [ ] Déploiement du modèle via une API Flask
-- [ ] Interface utilisateur pour les prédictions
+## 📄 Licence
 
-## Auteur
-
-[Votre Nom]
-
-## Licence
-
-Ce projet est sous licence MIT. 
+MIT
