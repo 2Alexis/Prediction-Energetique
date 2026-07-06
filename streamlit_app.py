@@ -24,6 +24,35 @@ RESULTS_DIR = os.path.join(ROOT, "results")
 
 st.set_page_config(page_title="Prévision énergétique", page_icon="⚡", layout="wide")
 
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+.stApp {
+    background:
+      radial-gradient(1100px 550px at 15% -10%, rgba(255,184,0,.10), transparent 60%),
+      radial-gradient(900px 480px at 90% 5%, rgba(0,229,255,.10), transparent 55%),
+      linear-gradient(160deg,#0a0e27 0%,#0b1020 55%,#081018 100%);
+}
+#MainMenu, header, footer {visibility:hidden;}
+html, body, [class*="css"] {font-family:'Inter',sans-serif;}
+.hero {text-align:center; padding:1.2rem 1rem .3rem;}
+.hero .badge {display:inline-block; font-size:.72rem; letter-spacing:2px; text-transform:uppercase;
+    color:#FFB800; border:1px solid rgba(255,184,0,.35); border-radius:999px; padding:.3rem .95rem;
+    margin-bottom:.9rem; background:rgba(255,184,0,.06);}
+.hero h1 {font-size:2.9rem; font-weight:800; margin:.1rem 0;
+    background:linear-gradient(110deg,#FFD166,#FF6B35 45%,#00E5FF);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;}
+.hero p {color:#93a4c9; font-size:1.02rem; max-width:720px; margin:.35rem auto 0;}
+.stButton > button {background:linear-gradient(120deg,#FFB800,#FF6B35)!important; color:#0a0e27!important;
+    font-weight:700!important; border:none!important; border-radius:12px!important;}
+.stButton > button:hover {filter:brightness(1.08); box-shadow:0 6px 22px rgba(255,140,0,.35);}
+[data-testid="stMetric"] {background:rgba(255,255,255,.03); border:1px solid rgba(255,184,0,.18);
+    border-radius:16px; padding:1rem 1.1rem;}
+.stTabs [aria-selected="true"] {color:#FFB800 !important;}
+hr {border-color:rgba(255,184,0,.15);}
+</style>
+""", unsafe_allow_html=True)
+
 MONTHS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
           "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
 DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
@@ -79,12 +108,14 @@ def load_metrics():
 model, SERIES, R2, MAE = train()
 METRICS = load_metrics()
 
-st.title("⚡ Prévision de la demande énergétique")
-st.caption(
-    "Prédiction de la consommation électrique quotidienne d'une ville "
-    f"(météo + calendrier + historique). Modèle : **Random Forest** · "
-    f"R² test **{R2:.2f}** · erreur moyenne ± {MAE:,.0f} MW."
-)
+st.markdown(f"""
+<div class="hero">
+    <span class="badge">⚡ Machine Learning · Séries temporelles</span>
+    <h1>Prévision de la demande énergétique</h1>
+    <p>Consommation électrique quotidienne prédite à partir de la météo, du calendrier
+    et de l'historique. Modèle Random Forest · R² test {R2:.2f} · erreur moyenne ± {MAE:,.0f} MW.</p>
+</div>
+""", unsafe_allow_html=True)
 
 tab_pred, tab_perf = st.tabs(["🔮 Prédiction", "📊 Performance du modèle"])
 
