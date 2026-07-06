@@ -1,9 +1,9 @@
 """
 Prédiction de la demande énergétique quotidienne — application Streamlit.
 
-Charge le meilleur modèle entraîné (voir src/train_model.py) et prédit la
-consommation à partir des conditions météo / calendrier saisies. Les variables
-autorégressives (lags) sont dérivées automatiquement de l'historique récent.
+Le modèle (Random Forest) est entraîné au démarrage puis mis en cache : pas de
+fichier modèle à charger, aucune dépendance lourde au runtime. La méthodologie
+complète (comparaison XGBoost/LightGBM, tuning) est dans src/train_model.py.
 
 Lancement local :  streamlit run streamlit_app.py
 """
@@ -14,13 +14,13 @@ import json
 
 import numpy as np
 import pandas as pd
-import joblib
 import streamlit as st
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import r2_score, mean_absolute_error
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-MODELS_DIR = os.path.join(ROOT, "models")
+RAW = os.path.join(ROOT, "data", "raw", "cleaned_file.csv")
 RESULTS_DIR = os.path.join(ROOT, "results")
-SERIES_PATH = os.path.join(ROOT, "data", "processed", "daily_series.csv")
 
 st.set_page_config(page_title="Prévision énergétique", page_icon="⚡", layout="wide")
 
@@ -28,47 +28,68 @@ MONTHS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
           "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
 DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
 
+FEATURES = ["temperature", "humidite", "vitesse_vent", "precipitation", "evenement",
+            "mois", "jour_semaine", "weekend", "jour_annee",
+            "lag1", "lag7", "moyenne_7j", "moyenne_30j"]
+
 
 @st.cache_resource
-def load_artifacts():
-    model_files = sorted(glob.glob(os.path.join(MODELS_DIR, "best_model_*.joblib")))
-    model = joblib.load(model_files[-1]) if model_files else None
+def train():
+    """Reconstruit la série journalière, entraîne le Random Forest, met en cache."""
+    df = pd.read_csv(RAW)
+    df["date"] = pd.to_datetime(df["Date_Debut_x"])
+    daily = (df.groupby("date").agg({
+        "Consommation(MW)": "mean", "Temperature": "mean", "Humidity": "mean",
+        "Wind Speed": "mean", "Precipitation": "mean", "Event": "max"})
+        .sort_index().asfreq("D"))
+    daily["Consommation(MW)"] = daily["Consommation(MW)"].interpolate()
+    daily = daily.ffill().bfill()
+    y = daily["Consommation(MW)"]
 
-    with open(os.path.join(MODELS_DIR, "feature_columns.json"), encoding="utf-8") as f:
-        feature_cols = json.load(f)
+    f = pd.DataFrame(index=daily.index)
+    f["temperature"] = daily["Temperature"]; f["humidite"] = daily["Humidity"]
+    f["vitesse_vent"] = daily["Wind Speed"]; f["precipitation"] = daily["Precipitation"]
+    f["evenement"] = daily["Event"]; f["mois"] = daily.index.month
+    f["jour_semaine"] = daily.index.dayofweek; f["weekend"] = (daily.index.dayofweek >= 5).astype(int)
+    f["jour_annee"] = daily.index.dayofyear
+    f["lag1"] = y.shift(1); f["lag7"] = y.shift(7)
+    f["moyenne_7j"] = y.shift(1).rolling(7).mean(); f["moyenne_30j"] = y.shift(1).rolling(30).mean()
+    f["y"] = y
+    f = f.dropna()
 
-    metrics_files = sorted(glob.glob(os.path.join(MODELS_DIR, "metrics_*.json")))
-    metrics = {}
-    if metrics_files:
-        with open(metrics_files[-1], encoding="utf-8") as f:
-            metrics = json.load(f)
+    X, target = f[FEATURES], f["y"]
+    cut = int(len(f) * 0.8)
+    model = RandomForestRegressor(n_estimators=400, max_depth=10, min_samples_leaf=4,
+                                  random_state=42, n_jobs=-1)
+    model.fit(X.iloc[:cut], target.iloc[:cut])
+    r2 = r2_score(target.iloc[cut:], model.predict(X.iloc[cut:]))
+    mae = mean_absolute_error(target.iloc[cut:], model.predict(X.iloc[cut:]))
+    return model, y, r2, mae
 
-    series = pd.read_csv(SERIES_PATH, parse_dates=["date"], index_col="date")["Consommation(MW)"]
-    return model, feature_cols, metrics, series
+
+@st.cache_data
+def load_metrics():
+    files = sorted(glob.glob(os.path.join(ROOT, "models", "metrics_*.json")))
+    if files:
+        with open(files[-1], encoding="utf-8") as fh:
+            return json.load(fh)
+    return {}
 
 
-model, FEATURES, METRICS, SERIES = load_artifacts()
+model, SERIES, R2, MAE = train()
+METRICS = load_metrics()
 
-# Meilleur modèle = plus haut R² test
-best_name = max(METRICS, key=lambda n: METRICS[n]["test_metrics"]["r2"]) if METRICS else "random_forest"
-best_r2 = METRICS[best_name]["test_metrics"]["r2"] if METRICS else 0.86
-best_mae = METRICS[best_name]["test_metrics"]["mae"] if METRICS else 0
-
-# ── En-tête ───────────────────────────────────────────────────────────────
 st.title("⚡ Prévision de la demande énergétique")
 st.caption(
     "Prédiction de la consommation électrique quotidienne d'une ville "
-    "(météo + calendrier + historique). Modèle : "
-    f"**{best_name.replace('_', ' ').title()}** · R² test **{best_r2:.2f}** · "
-    f"erreur moyenne ± {best_mae:,.0f} MW."
+    f"(météo + calendrier + historique). Modèle : **Random Forest** · "
+    f"R² test **{R2:.2f}** · erreur moyenne ± {MAE:,.0f} MW."
 )
 
 tab_pred, tab_perf = st.tabs(["🔮 Prédiction", "📊 Performance du modèle"])
 
-# ── Onglet Prédiction ─────────────────────────────────────────────────────
 with tab_pred:
     left, right = st.columns([2, 1.4], gap="large")
-
     with left:
         st.subheader("Conditions")
         c1, c2 = st.columns(2)
@@ -85,42 +106,33 @@ with tab_pred:
 
     with right:
         st.subheader("Résultat")
-        if predict and model is not None:
+        if predict:
             weekend = 1 if jour_semaine >= 5 else 0
             import datetime as _dt
             jour_annee = _dt.date(2020, mois, 15).timetuple().tm_yday
-            # Lags dérivés de l'historique le plus récent
-            lag1 = float(SERIES.iloc[-1])
-            lag7 = float(SERIES.iloc[-7])
-            moyenne_7j = float(SERIES.iloc[-7:].mean())
-            moyenne_30j = float(SERIES.iloc[-30:].mean())
-            values = {
-                "temperature": temperature, "humidite": humidite,
-                "vitesse_vent": vitesse_vent, "precipitation": precipitation,
-                "evenement": int(evenement), "mois": mois,
-                "jour_semaine": jour_semaine, "weekend": weekend,
-                "jour_annee": jour_annee, "lag1": lag1, "lag7": lag7,
-                "moyenne_7j": moyenne_7j, "moyenne_30j": moyenne_30j,
-            }
+            lag1 = float(SERIES.iloc[-1]); lag7 = float(SERIES.iloc[-7])
+            moyenne_7j = float(SERIES.iloc[-7:].mean()); moyenne_30j = float(SERIES.iloc[-30:].mean())
+            values = {"temperature": temperature, "humidite": humidite,
+                      "vitesse_vent": vitesse_vent, "precipitation": precipitation,
+                      "evenement": int(evenement), "mois": mois, "jour_semaine": jour_semaine,
+                      "weekend": weekend, "jour_annee": jour_annee, "lag1": lag1, "lag7": lag7,
+                      "moyenne_7j": moyenne_7j, "moyenne_30j": moyenne_30j}
             X = pd.DataFrame([[values[c] for c in FEATURES]], columns=FEATURES)
             pred = float(model.predict(X)[0])
             st.metric("Consommation prédite", f"{pred:,.0f} MW")
-            delta = (pred - lag1) / lag1 * 100
-            st.metric("Vs. dernier jour connu", f"{lag1:,.0f} MW", f"{delta:+.1f}%")
+            st.metric("Vs. dernier jour connu", f"{lag1:,.0f} MW", f"{(pred - lag1) / lag1 * 100:+.1f}%")
         else:
             st.info("Règle les conditions à gauche puis clique sur **Prédire**.")
 
-# ── Onglet Performance ────────────────────────────────────────────────────
 with tab_perf:
     st.subheader("Comparaison des modèles (R² sur test)")
-    if METRICS:
-        rows = [
-            {"Modèle": n.replace("_", " ").title(),
-             "R² test": round(m["test_metrics"]["r2"], 3),
-             "RMSE": round(m["test_metrics"]["rmse"]),
-             "MAE": round(m["test_metrics"]["mae"])}
-            for n, m in sorted(METRICS.items(), key=lambda kv: -kv[1]["test_metrics"]["r2"])
-        ]
+    comp = METRICS if METRICS else {}
+    if comp:
+        rows = [{"Modèle": n.replace("_", " ").title(),
+                 "R² test": round(m["test_metrics"]["r2"], 3),
+                 "RMSE": round(m["test_metrics"]["rmse"]),
+                 "MAE": round(m["test_metrics"]["mae"])}
+                for n, m in sorted(comp.items(), key=lambda kv: -kv[1]["test_metrics"]["r2"])]
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
     st.info(
@@ -130,17 +142,14 @@ with tab_perf:
     )
 
     col1, col2 = st.columns(2)
-    for col, img, cap in [
-        (col1, "model_comparison.png", "Comparaison des modèles"),
-        (col2, "feature_importance.png", "Importance des variables"),
-    ]:
-        path = os.path.join(RESULTS_DIR, img)
-        if os.path.exists(path):
-            col.image(path, caption=cap, use_container_width=True)
-
+    for col, img, cap in [(col1, "model_comparison.png", "Comparaison des modèles"),
+                          (col2, "feature_importance.png", "Importance des variables")]:
+        p = os.path.join(RESULTS_DIR, img)
+        if os.path.exists(p):
+            col.image(p, caption=cap, use_container_width=True)
     pva = os.path.join(RESULTS_DIR, "predictions_vs_actual.png")
     if os.path.exists(pva):
-        st.image(pva, caption="Consommation réelle vs prédite (période de test)", use_container_width=True)
+        st.image(pva, caption="Consommation réelle vs prédite (test)", use_container_width=True)
 
 st.divider()
 st.caption("Alexis Clerc · [GitHub](https://github.com/2Alexis) · [Portfolio](https://alexis-clerc.fr)")

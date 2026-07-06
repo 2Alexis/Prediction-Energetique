@@ -1,7 +1,5 @@
-# Dépendances RUNTIME (app Streamlit déployée) — volontairement minimal.
-# Pour (ré)entraîner le modèle, installer requirements-dev.txt.
-numpy>=2.0,<3
-pandas>=2.2,<3
-scikit-learn==1.6.1
-joblib>=1.3
+# App Streamlit : le modèle est entraîné au démarrage (aucun modèle à charger).
+numpy>=2.0
+pandas>=2.2
+scikit-learn>=1.6
 streamlit>=1.40
