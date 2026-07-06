@@ -54,10 +54,11 @@ Prediction-Energetique/
 ```bash
 git clone https://github.com/2Alexis/Prediction-Energetique.git
 cd Prediction-Energetique
-pip install -r requirements.txt
+pip install -r requirements.txt          # runtime (app)
+# pip install -r requirements-dev.txt    # + entraînement (xgboost, lightgbm, matplotlib…)
 ```
 
-**Entraîner le modèle** (régénère modèle, métriques et visualisations) :
+**Entraîner le modèle** (régénère modèle, métriques et visualisations — nécessite `requirements-dev.txt`) :
 ```bash
 python src/train_model.py
 ```

@@ -1,0 +1,9 @@
+# Dépendances de DÉVELOPPEMENT : entraînement du modèle + version Flask.
+-r requirements.txt
+matplotlib>=3.8
+seaborn>=0.13
+xgboost>=2.0
+lightgbm>=4.0
+flask>=3.0
+gunicorn>=21.0
+python-dateutil>=2.8
